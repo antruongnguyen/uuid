@@ -1,0 +1,63 @@
+name: Update Dependencies
+
+on:
+  push:
+    paths:
+      - 'Cargo.toml'
+    branches:
+      - main
+
+jobs:
+  update-docs:
+    name: Update Dependencies in Documentation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract dependency versions
+        id: extract_versions
+        run: |
+          UUID_VERSION=$(grep -oP 'uuid = \{ version = "\K[^"]+' Cargo.toml)
+          CLAP_VERSION=$(grep -oP 'clap = \{ version = "\K[^"]+' Cargo.toml)
+          CLIPBOARD_VERSION=$(grep -oP 'clipboard = "\K[^"]+' Cargo.toml)
+          
+          echo "uuid_version=$UUID_VERSION" >> $GITHUB_OUTPUT
+          echo "clap_version=$CLAP_VERSION" >> $GITHUB_OUTPUT
+          echo "clipboard_version=$CLIPBOARD_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Update requirements.md
+        run: |
+          UUID_VERSION="${{ steps.extract_versions.outputs.uuid_version }}"
+          CLAP_VERSION="${{ steps.extract_versions.outputs.clap_version }}"
+          CLIPBOARD_VERSION="${{ steps.extract_versions.outputs.clipboard_version }}"
+          
+          # Update uuid version
+          sed -i "s/\*\*uuid\*\* (v[0-9.]\+)/\*\*uuid\*\* (v$UUID_VERSION)/g" requirements.md
+          
+          # Update clap version
+          sed -i "s/\*\*clap\*\* (v[0-9.]\+)/\*\*clap\*\* (v$CLAP_VERSION)/g" requirements.md
+          
+          # Update clipboard version
+          sed -i "s/\*\*clipboard\*\* (v[0-9.]\+)/\*\*clipboard\*\* (v$CLIPBOARD_VERSION)/g" requirements.md
+
+      - name: Check for changes
+        id: check_changes
+        run: |
+          if git diff --quiet requirements.md; then
+            echo "No changes to commit"
+            echo "changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "Changes detected"
+            echo "changes=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit and push changes
+        if: steps.check_changes.outputs.changes == 'true'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add requirements.md
+          git commit -m "Update dependency versions in requirements.md"
+          git push

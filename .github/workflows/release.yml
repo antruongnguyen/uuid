@@ -1,0 +1,256 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
+    steps:
+      - name: Get version from tag
+        id: get_version
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+  build-release:
+    name: Build Release - ${{ matrix.target }}
+    needs: create-release
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact_name: uuid
+            asset_name: uuid-${{ needs.create-release.outputs.version }}-x86_64-linux
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            artifact_name: uuid
+            asset_name: uuid-${{ needs.create-release.outputs.version }}-aarch64-linux
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            artifact_name: uuid
+            asset_name: uuid-${{ needs.create-release.outputs.version }}-x86_64-macos
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            artifact_name: uuid
+            asset_name: uuid-${{ needs.create-release.outputs.version }}-aarch64-macos
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact_name: uuid.exe
+            asset_name: uuid-${{ needs.create-release.outputs.version }}-x86_64-windows
+          - os: windows-latest
+            target: i686-pc-windows-msvc
+            artifact_name: uuid.exe
+            asset_name: uuid-${{ needs.create-release.outputs.version }}-i686-windows
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+          target: ${{ matrix.target }}
+
+      - name: Build target
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release --target ${{ matrix.target }}
+
+      - name: Prepare artifact [Windows]
+        if: matrix.os == 'windows-latest'
+        run: |
+          mkdir dist
+          copy target\${{ matrix.target }}\release\${{ matrix.artifact_name }} dist\
+          cd dist
+          7z a -tzip ${{ matrix.asset_name }}.zip ${{ matrix.artifact_name }}
+          certutil -hashfile ${{ matrix.asset_name }}.zip SHA256 > ${{ matrix.asset_name }}.sha256
+
+      - name: Prepare artifact [Unix]
+        if: matrix.os != 'windows-latest'
+        run: |
+          mkdir dist
+          cp target/${{ matrix.target }}/release/${{ matrix.artifact_name }} dist/
+          cd dist
+          tar -czf ${{ matrix.asset_name }}.tar.gz ${{ matrix.artifact_name }}
+          shasum -a 256 ${{ matrix.asset_name }}.tar.gz > ${{ matrix.asset_name }}.sha256
+
+      - name: Upload Release Assets
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          name: Release ${{ github.ref }}
+          files: |
+            ${{ matrix.os == 'windows-latest' && format('dist/{0}.zip', matrix.asset_name) || format('dist/{0}.tar.gz', matrix.asset_name) }}
+            dist/${{ matrix.asset_name }}.sha256
+
+  # Create special assets for package managers
+  package-assets:
+    name: Create Package Manager Assets
+    needs: [create-release, build-release]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create Homebrew Formula
+        run: |
+          VERSION=${{ needs.create-release.outputs.version }}
+          mkdir -p dist
+
+          # Check if curl is available
+          if ! command -v curl &> /dev/null; then
+            echo "curl is not installed. Installing..."
+            sudo apt-get update && sudo apt-get install -y curl
+          fi
+
+          # Check if sha256sum is available
+          if ! command -v sha256sum &> /dev/null; then
+            echo "sha256sum is not installed. Installing..."
+            sudo apt-get update && sudo apt-get install -y coreutils
+          fi
+
+          # Download the source tarball
+          echo "Downloading source tarball..."
+          if ! curl -L --retry 3 --retry-delay 5 https://github.com/${{ github.repository }}/archive/refs/tags/v${VERSION}.tar.gz -o dist/uuid-${VERSION}.tar.gz; then
+            echo "Failed to download source tarball. Exiting."
+            exit 1
+          fi
+
+          # Calculate SHA256
+          echo "Calculating SHA256 checksum..."
+          SHA256=$(sha256sum dist/uuid-${VERSION}.tar.gz | awk '{print $1}')
+          if [ -z "$SHA256" ]; then
+            echo "Failed to calculate SHA256 checksum. Exiting."
+            exit 1
+          fi
+
+          # Create Homebrew formula
+          echo "Creating Homebrew formula..."
+          cat > dist/uuid.rb << EOF
+          class Uuid < Formula
+            desc "CLI tool for generating UUIDs of different versions"
+            homepage "https://github.com/${{ github.repository }}"
+            url "https://github.com/${{ github.repository }}/archive/refs/tags/v${VERSION}.tar.gz"
+            sha256 "${SHA256}"
+            license "MIT"
+
+            depends_on "rust" => :build
+
+            def install
+              system "cargo", "install", "--locked", "--root", prefix, "--path", "."
+            end
+
+            test do
+              assert_match /[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/, shell_output("#{bin}/uuid")
+            end
+          end
+          EOF
+
+      - name: Create Scoop Manifest
+        run: |
+          VERSION=${{ needs.create-release.outputs.version }}
+          mkdir -p dist
+
+          # Check if curl is available
+          if ! command -v curl &> /dev/null; then
+            echo "curl is not installed. Installing..."
+            sudo apt-get update && sudo apt-get install -y curl
+          fi
+
+          # Check if sha256sum is available
+          if ! command -v sha256sum &> /dev/null; then
+            echo "sha256sum is not installed. Installing..."
+            sudo apt-get update && sudo apt-get install -y coreutils
+          fi
+
+          # Check if the Windows zip files are available
+          echo "Checking if Windows zip files are available..."
+          if ! curl --head --silent --fail https://github.com/${{ github.repository }}/releases/download/v${VERSION}/uuid-${VERSION}-x86_64-windows.zip > /dev/null; then
+            echo "x86_64 Windows zip file is not available yet. Waiting for 30 seconds..."
+            sleep 30
+          fi
+
+          if ! curl --head --silent --fail https://github.com/${{ github.repository }}/releases/download/v${VERSION}/uuid-${VERSION}-i686-windows.zip > /dev/null; then
+            echo "i686 Windows zip file is not available yet. Waiting for 30 seconds..."
+            sleep 30
+          fi
+
+          # Download Windows zip files to calculate SHA256
+          echo "Downloading Windows zip files..."
+          if ! curl -L --retry 3 --retry-delay 5 https://github.com/${{ github.repository }}/releases/download/v${VERSION}/uuid-${VERSION}-x86_64-windows.zip -o dist/uuid-x86_64-windows.zip; then
+            echo "Failed to download x86_64 Windows zip file. Exiting."
+            exit 1
+          fi
+
+          if ! curl -L --retry 3 --retry-delay 5 https://github.com/${{ github.repository }}/releases/download/v${VERSION}/uuid-${VERSION}-i686-windows.zip -o dist/uuid-i686-windows.zip; then
+            echo "Failed to download i686 Windows zip file. Exiting."
+            exit 1
+          fi
+
+          # Calculate SHA256
+          echo "Calculating SHA256 checksums..."
+          SHA256_64=$(sha256sum dist/uuid-x86_64-windows.zip | awk '{print $1}')
+          if [ -z "$SHA256_64" ]; then
+            echo "Failed to calculate SHA256 checksum for x86_64 Windows zip file. Exiting."
+            exit 1
+          fi
+
+          SHA256_32=$(sha256sum dist/uuid-i686-windows.zip | awk '{print $1}')
+          if [ -z "$SHA256_32" ]; then
+            echo "Failed to calculate SHA256 checksum for i686 Windows zip file. Exiting."
+            exit 1
+          fi
+
+          # Create Scoop manifest
+          echo "Creating Scoop manifest..."
+          cat > dist/uuid.json << EOF
+          {
+              "version": "${VERSION}",
+              "description": "CLI tool for generating UUIDs of different versions",
+              "homepage": "https://github.com/${{ github.repository }}",
+              "license": "MIT",
+              "architecture": {
+                  "64bit": {
+                      "url": "https://github.com/${{ github.repository }}/releases/download/v${VERSION}/uuid-${VERSION}-x86_64-windows.zip",
+                      "hash": "${SHA256_64}"
+                  },
+                  "32bit": {
+                      "url": "https://github.com/${{ github.repository }}/releases/download/v${VERSION}/uuid-${VERSION}-i686-windows.zip",
+                      "hash": "${SHA256_32}"
+                  }
+              },
+              "bin": "uuid.exe",
+              "checkver": "github",
+              "autoupdate": {
+                  "architecture": {
+                      "64bit": {
+                          "url": "https://github.com/${{ github.repository }}/releases/download/v\$version/uuid-\$version-x86_64-windows.zip"
+                      },
+                      "32bit": {
+                          "url": "https://github.com/${{ github.repository }}/releases/download/v\$version/uuid-\$version-i686-windows.zip"
+                      }
+                  }
+              }
+          }
+          EOF
+
+      - name: Upload Package Manager Assets
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          name: Release ${{ github.ref }}
+          files: |
+            dist/uuid.rb
+            dist/uuid.json
