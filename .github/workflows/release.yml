@@ -99,6 +99,8 @@ jobs:
             dist/${{ matrix.asset_name }}.sha256
           allowUpdates: true
           omitBodyDuringUpdate: true
+          skipIfReleaseExists: true
+          generateReleaseNotes: true
 
   # Create special assets for package managers
   package-assets:
@@ -261,3 +263,5 @@ jobs:
             dist/uuid.json
           allowUpdates: true
           omitBodyDuringUpdate: true
+          skipIfReleaseExists: true
+          generateReleaseNotes: true
