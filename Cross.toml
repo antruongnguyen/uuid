@@ -1,21 +1,5 @@
 [target.aarch64-unknown-linux-gnu]
-dockerfile = """
-FROM ghcr.io/cross-rs/aarch64-unknown-linux-gnu:latest
-
-# Install dependencies
-RUN apt-get update && \
-    apt-get install -y python3 build-essential pkg-config \
-    libx11-dev libxcb1-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev \
-    libx11-xcb-dev libxcb-xkb-dev libxcb-icccm4-dev libxcb-image0-dev \
-    libxcb-keysyms1-dev libxcb-randr0-dev libxcb-util-dev
-
-# Create symbolic links to ensure libraries are found
-RUN mkdir -p /usr/aarch64-linux-gnu/lib && \
-    ln -sf /usr/lib/aarch64-linux-gnu/libxcb.so /usr/aarch64-linux-gnu/lib/ && \
-    ln -sf /usr/lib/aarch64-linux-gnu/libxcb-render.so /usr/aarch64-linux-gnu/lib/ && \
-    ln -sf /usr/lib/aarch64-linux-gnu/libxcb-shape.so /usr/aarch64-linux-gnu/lib/ && \
-    ln -sf /usr/lib/aarch64-linux-gnu/libxcb-xfixes.so /usr/aarch64-linux-gnu/lib/
-"""
+dockerfile = "Dockerfile.aarch64-unknown-linux-gnu"
 
 [target.aarch64-unknown-linux-gnu.env]
 CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER = "aarch64-linux-gnu-gcc"
