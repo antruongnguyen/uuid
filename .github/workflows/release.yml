@@ -89,15 +89,16 @@ jobs:
           shasum -a 256 ${{ matrix.asset_name }}.tar.gz > ${{ matrix.asset_name }}.sha256
 
       - name: Upload Release Assets
-        uses: softprops/action-gh-release@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: ncipollo/release-action@v1.16.0
         with:
-          tag_name: ${{ github.ref }}
-          name: Release ${{ github.ref }}
-          files: |
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ github.ref }}
+          name: ${{ github.ref_name }}
+          artifacts: |
             ${{ matrix.os == 'windows-latest' && format('dist/{0}.zip', matrix.asset_name) || format('dist/{0}.tar.gz', matrix.asset_name) }}
             dist/${{ matrix.asset_name }}.sha256
+          allowUpdates: true
+          omitBodyDuringUpdate: true
 
   # Create special assets for package managers
   package-assets:
@@ -250,12 +251,13 @@ jobs:
           EOF
 
       - name: Upload Package Manager Assets
-        uses: softprops/action-gh-release@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: ncipollo/release-action@v1.16.0
         with:
-          tag_name: ${{ github.ref }}
-          name: Release ${{ github.ref }}
-          files: |
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ github.ref }}
+          name: ${{ github.ref_name }}
+          artifacts: |
             dist/uuid.rb
             dist/uuid.json
+          allowUpdates: true
+          omitBodyDuringUpdate: true
