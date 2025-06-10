@@ -73,6 +73,7 @@ jobs:
         run: |
           # Install cross tool for Rust cross-compilation
           cargo install cross
+          # Note: Cross.toml in the repository root configures cross to install Python3 in the container
 
       - name: Build target
         run: |
