@@ -2,10 +2,11 @@
 # See all options at: https://rust-lang.github.io/rustfmt/
 
 # Basic settings
-max_width = 100
-tab_spaces = 4
+max_width = 120
+tab_spaces = 2
 edition = "2024"
-newline_style = "Unix"
+# Possible values: "Auto", "Native", "Unix", "Windows"
+newline_style = "Native"
 
 # Code structure
 reorder_imports = true
