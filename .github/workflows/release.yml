@@ -28,10 +28,10 @@ jobs:
       max-parallel: 1
       matrix:
         include:
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-            artifact_name: uuid
-            asset_name: uuid-${{ needs.create-release.outputs.version }}-x86_64-linux
+#          - os: ubuntu-latest
+#            target: x86_64-unknown-linux-gnu
+#            artifact_name: uuid
+#            asset_name: uuid-${{ needs.create-release.outputs.version }}-x86_64-linux
           - os: ubuntu-latest
             target: aarch64-unknown-linux-gnu
             artifact_name: uuid
@@ -71,8 +71,12 @@ jobs:
       - name: Install cross-compilation tools for ARM64
         if: runner.os == 'Linux' && matrix.target == 'aarch64-unknown-linux-gnu'
         run: |
+          # Enable multiarch support
+          sudo dpkg --add-architecture arm64
           sudo apt-get update
           sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+          # Install ARM64 versions of the required libraries
+          sudo apt-get install -y libx11-dev:arm64 libxcb1-dev:arm64 libxcb-render0-dev:arm64 libxcb-shape0-dev:arm64 libxcb-xfixes0-dev:arm64
 
       - name: Build target
         run: |
@@ -80,6 +84,8 @@ jobs:
             export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
             export CC_aarch64_unknown_linux_gnu=aarch64-linux-gnu-gcc
             export CXX_aarch64_unknown_linux_gnu=aarch64-linux-gnu-g++
+            # Set library path for ARM64 libraries
+            export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_RUSTFLAGS="-L /usr/aarch64-linux-gnu/lib"
           fi
           cargo build --release --target ${{ matrix.target }}
 
