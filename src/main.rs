@@ -2,7 +2,7 @@ use clap::{Parser, ValueEnum};
 use clipboard::{ClipboardContext, ClipboardProvider};
 use std::fmt::Write as FmtWrite;
 use uuid::{
-    Uuid, 
+    Uuid,
     v1::{Context, Timestamp},
 };
 
@@ -58,16 +58,19 @@ fn main() {
     match args.version {
         UuidVersion::V3 | UuidVersion::V5 => {
             if args.namespace.is_none() || args.name.is_none() {
-                eprintln!("Error: --namespace and --name are required for UUID version {:?}", args.version);
+                eprintln!(
+                    "Error: --namespace and --name are required for UUID version {:?}",
+                    args.version
+                );
                 std::process::exit(1);
             }
-        },
+        }
         UuidVersion::V8 => {
             if args.data.is_none() {
                 eprintln!("Error: --data is required for UUID version V8");
                 std::process::exit(1);
             }
-        },
+        }
         _ => {}
     }
 
@@ -102,7 +105,7 @@ fn main() {
                 if let Err(e) = ctx.set_contents(all_uuids) {
                     eprintln!("Failed to copy to clipboard: {}", e);
                 }
-            },
+            }
             Err(e) => {
                 eprintln!("Failed to access clipboard: {}", e);
             }
@@ -118,35 +121,35 @@ fn generate_uuid(args: &Args) -> Uuid {
             // Create a node ID (MAC address)
             let node_id = [0x01, 0x23, 0x45, 0x67, 0x89, 0xAB];
             Uuid::new_v1(ts, &node_id)
-        },
+        }
         UuidVersion::V3 => {
-            let namespace = Uuid::parse_str(args.namespace.as_ref().unwrap()).unwrap_or_else(|_| {
-                eprintln!("Error: Invalid namespace UUID format");
-                std::process::exit(1);
-            });
+            let namespace =
+                Uuid::parse_str(args.namespace.as_ref().unwrap()).unwrap_or_else(|_| {
+                    eprintln!("Error: Invalid namespace UUID format");
+                    std::process::exit(1);
+                });
             Uuid::new_v3(&namespace, args.name.as_ref().unwrap().as_bytes())
-        },
-        UuidVersion::V4 => {
-            Uuid::new_v4()
-        },
+        }
+        UuidVersion::V4 => Uuid::new_v4(),
         UuidVersion::V5 => {
-            let namespace = Uuid::parse_str(args.namespace.as_ref().unwrap()).unwrap_or_else(|_| {
-                eprintln!("Error: Invalid namespace UUID format");
-                std::process::exit(1);
-            });
+            let namespace =
+                Uuid::parse_str(args.namespace.as_ref().unwrap()).unwrap_or_else(|_| {
+                    eprintln!("Error: Invalid namespace UUID format");
+                    std::process::exit(1);
+                });
             Uuid::new_v5(&namespace, args.name.as_ref().unwrap().as_bytes())
-        },
+        }
         UuidVersion::V6 => {
             let context = Context::new(42);
             let ts = Timestamp::now(context);
             // Create a node ID (MAC address)
             let node_id = [0x01, 0x23, 0x45, 0x67, 0x89, 0xAB];
             Uuid::new_v6(ts, &node_id)
-        },
+        }
         UuidVersion::V7 => {
             let ts = Timestamp::now(Context::new(42));
             Uuid::new_v7(ts)
-        },
+        }
         UuidVersion::V8 => {
             // Convert input string to bytes for v8
             let data = args.data.as_ref().unwrap().as_bytes();
@@ -161,6 +164,6 @@ fn generate_uuid(args: &Args) -> Uuid {
             bytes[8] = (bytes[8] & 0x3F) | 0x80;
 
             Uuid::from_bytes(bytes)
-        },
+        }
     }
 }

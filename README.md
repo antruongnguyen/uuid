@@ -49,6 +49,24 @@ A command-line tool for generating UUIDs of different versions with various form
    # On Windows, add the location to your PATH environment variable
    ```
 
+### Using Homebrew (macOS/Linux)
+
+You can install the UUID CLI tool using Homebrew:
+
+```bash
+brew tap antruongnguyen/uuid
+brew install uuid
+```
+
+### Using Scoop (Windows)
+
+You can install the UUID CLI tool using Scoop:
+
+```powershell
+scoop bucket add uuid https://github.com/antruongnguyen/scoop-uuid
+scoop install uuid
+```
+
 ## Usage
 
 ### Basic Usage
@@ -137,6 +155,39 @@ Run the tests with:
 ```
 cargo test
 ```
+
+## Code Formatting
+
+This project uses [rustfmt](https://github.com/rust-lang/rustfmt) to maintain consistent code formatting. The formatting rules are defined in the `rustfmt.toml` file.
+
+> **Note:** Some advanced formatting options are commented out in `rustfmt.toml` because they require the nightly Rust channel. If you want to use these features, switch to the nightly channel with `rustup default nightly`.
+
+### Formatting Code Manually
+
+To format your code manually, run:
+```
+cargo fmt
+```
+
+To check if your code is properly formatted without making changes:
+```
+cargo fmt -- --check
+```
+
+### Pre-commit Hook
+
+A pre-commit hook is provided to automatically format your code before each commit. To set it up:
+
+```bash
+# Copy the hook to the git hooks directory
+cp hooks/pre-commit .git/hooks/
+# Make sure it's executable
+chmod +x .git/hooks/pre-commit
+```
+
+### CI Integration
+
+The CI pipeline automatically checks that all code is properly formatted. If the formatting check fails, the build will fail.
 
 ## Cross-platform Support
 

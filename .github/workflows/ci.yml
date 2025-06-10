@@ -3,8 +3,18 @@ name: CI
 on:
   push:
     branches: [ main ]
+    paths:
+      - 'src/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - '.github/workflows/ci.yml'
   pull_request:
     branches: [ main ]
+    paths:
+      - 'src/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - '.github/workflows/ci.yml'
 
 jobs:
   test:
@@ -30,11 +40,8 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y libx11-dev libxcb1-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev
 
-#    - name: Check formatting
-#      uses: actions-rs/cargo@v1
-#      with:
-#        command: fmt
-#        args: --all -- --check
+    - name: Check formatting
+      run: cargo fmt --all -- --check
 
     - name: Lint with clippy
       run: cargo clippy -- -D warnings
