@@ -33,11 +33,11 @@ To build the project from source, you need:
 
 The project relies on the following Rust crates:
 
-1. **uuid** (v1.6.1):
+1. **uuid** (v1.17.0):
    - Features enabled: v1, v3, v4, v5, v6, v7, v8, fast-rng, macro-diagnostics
    - Purpose: Core functionality for UUID generation
 
-2. **clap** (v4.4.11):
+2. **clap** (v4.5.40):
    - Features enabled: derive
    - Purpose: Command-line argument parsing
 

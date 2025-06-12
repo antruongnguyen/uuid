@@ -19,7 +19,7 @@ jobs:
       - name: Extract dependency versions
         id: extract_versions
         run: |
-          UUID_VERSION=$(grep -oP 'uuid = \{ version = "\K[^"]+' Cargo.toml)
+          UUID_VERSION=$(grep -oP 'uuid_lib = \{ package = "uuid", version = "\K[^"]+' Cargo.toml)
           CLAP_VERSION=$(grep -oP 'clap = \{ version = "\K[^"]+' Cargo.toml)
           CLIPBOARD_VERSION=$(grep -oP 'clipboard = "\K[^"]+' Cargo.toml)
           
