@@ -1,7 +1,7 @@
 use clap::{Parser, ValueEnum};
 use clipboard::{ClipboardContext, ClipboardProvider};
 use std::fmt::Write as FmtWrite;
-use uuid::{
+use uuid_lib::{
   Uuid,
   v1::{Context, Timestamp},
 };
