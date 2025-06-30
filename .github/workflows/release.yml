@@ -104,7 +104,7 @@ jobs:
           shasum -a 256 ${{ matrix.asset_name }}.tar.gz > ${{ matrix.asset_name }}.sha256
 
       - name: Upload Release Assets
-        uses: ncipollo/release-action@v1.16.0
+        uses: ncipollo/release-action@v1.18.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ github.ref }}
@@ -268,7 +268,7 @@ jobs:
           EOF
 
       - name: Upload Package Manager Assets
-        uses: ncipollo/release-action@v1.16.0
+        uses: ncipollo/release-action@v1.18.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ github.ref }}
