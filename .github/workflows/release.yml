@@ -114,7 +114,7 @@ jobs:
             dist/${{ matrix.asset_name }}.sha256
           allowUpdates: true
           omitBodyDuringUpdate: true
-          skipIfReleaseExists: true
+          skipIfReleaseExists: false
           generateReleaseNotes: true
 
   # Create special assets for package managers
@@ -178,6 +178,7 @@ jobs:
             end
           end
           EOF
+
 
       - name: Create Scoop Manifest
         run: |
@@ -267,6 +268,7 @@ jobs:
           }
           EOF
 
+
       - name: Upload Package Manager Assets
         uses: ncipollo/release-action@v1.18.0
         with:
@@ -278,5 +280,5 @@ jobs:
             dist/uuid.json
           allowUpdates: true
           omitBodyDuringUpdate: true
-          skipIfReleaseExists: true
+          skipIfReleaseExists: false
           generateReleaseNotes: true

@@ -3,7 +3,7 @@ name: Release (Local Testing)
 on:
   push:
     tags:
-      - 'v*'
+      - 'localV*'
 
 # Explicitly define permissions needed for GitHub releases
 permissions:
