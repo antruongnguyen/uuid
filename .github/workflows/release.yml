@@ -111,6 +111,8 @@ jobs:
     needs: [create-release, build-release]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
       - name: Download All Artifacts
         uses: actions/download-artifact@v4
         with:
@@ -141,53 +143,20 @@ jobs:
           # List files in release-assets directory
           ls -la release-assets/
 
-      - name: Create Release
-        uses: ncipollo/release-action@v1.18.0
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ github.ref }}
-          name: ${{ github.ref_name }}
-          artifacts: "release-assets/*"
-          allowUpdates: true
-          omitBodyDuringUpdate: true
-          skipIfReleaseExists: false
-          generateReleaseNotes: true
-
-  # Create special assets for package managers
-  package-assets:
-    name: Create Package Manager Assets
-    needs: [create-release, build-release, create-github-release]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
+      # Create package manager assets
       - name: Create Homebrew Formula
         run: |
           VERSION=${{ needs.create-release.outputs.version }}
           mkdir -p dist
 
-          # Check if curl is available
-          if ! command -v curl &> /dev/null; then
-            echo "curl is not installed. Installing..."
-            sudo apt-get update && sudo apt-get install -y curl
-          fi
-
-          # Check if sha256sum is available
-          if ! command -v sha256sum &> /dev/null; then
-            echo "sha256sum is not installed. Installing..."
-            sudo apt-get update && sudo apt-get install -y coreutils
-          fi
-
-          # Download the source tarball
+          # Note: For Homebrew, we need the SHA256 of the source tarball, which is not one of our build artifacts
+          # We still need to download it and calculate its SHA256
           echo "Downloading source tarball..."
-          if ! curl -L --retry 3 --retry-delay 5 https://github.com/${{ github.repository }}/archive/refs/tags/v${VERSION}.tar.gz -o dist/uuid-${VERSION}.tar.gz; then
-            echo "Failed to download source tarball. Exiting."
-            exit 1
-          fi
+          curl -L --retry 3 --retry-delay 5 https://github.com/${{ github.repository }}/archive/refs/tags/v${VERSION}.tar.gz -o dist/uuid-${VERSION}.tar.gz
 
-          # Calculate SHA256
-          echo "Calculating SHA256 checksum..."
-          SHA256=$(sha256sum dist/uuid-${VERSION}.tar.gz | awk '{print $1}')
+          # Calculate SHA256 using shasum (already available on ubuntu-latest)
+          echo "Calculating SHA256 checksum for source tarball (required for Homebrew)..."
+          SHA256=$(shasum -a 256 dist/uuid-${VERSION}.tar.gz | awk '{print $1}')
           if [ -z "$SHA256" ]; then
             echo "Failed to calculate SHA256 checksum. Exiting."
             exit 1
@@ -195,7 +164,7 @@ jobs:
 
           # Create Homebrew formula
           echo "Creating Homebrew formula..."
-          cat > dist/uuid.rb << EOF
+          cat > release-assets/uuid.rb << EOF
           class Uuid < Formula
             desc "CLI tool for generating UUIDs of different versions"
             homepage "https://github.com/${{ github.repository }}"
@@ -215,65 +184,48 @@ jobs:
           end
           EOF
 
-
       - name: Create Scoop Manifest
         run: |
           VERSION=${{ needs.create-release.outputs.version }}
-          mkdir -p dist
 
-          # Check if curl is available
-          if ! command -v curl &> /dev/null; then
-            echo "curl is not installed. Installing..."
-            sudo apt-get update && sudo apt-get install -y curl
-          fi
+          # Find Windows zip files and their SHA256 files in release-assets
+          X86_64_ZIP=$(find release-assets -name "*x86_64-windows.zip")
+          X86_64_SHA256_FILE=$(find release-assets -name "*x86_64-windows*.sha256")
+          I686_ZIP=$(find release-assets -name "*i686-windows.zip")
+          I686_SHA256_FILE=$(find release-assets -name "*i686-windows*.sha256")
 
-          # Check if sha256sum is available
-          if ! command -v sha256sum &> /dev/null; then
-            echo "sha256sum is not installed. Installing..."
-            sudo apt-get update && sudo apt-get install -y coreutils
-          fi
-
-          # Check if the Windows zip files are available
-          echo "Checking if Windows zip files are available..."
-          if ! curl --head --silent --fail https://github.com/${{ github.repository }}/releases/download/v${VERSION}/uuid-${VERSION}-x86_64-windows.zip > /dev/null; then
-            echo "x86_64 Windows zip file is not available yet. Waiting for 30 seconds..."
-            sleep 30
-          fi
-
-          if ! curl --head --silent --fail https://github.com/${{ github.repository }}/releases/download/v${VERSION}/uuid-${VERSION}-i686-windows.zip > /dev/null; then
-            echo "i686 Windows zip file is not available yet. Waiting for 30 seconds..."
-            sleep 30
-          fi
-
-          # Download Windows zip files to calculate SHA256
-          echo "Downloading Windows zip files..."
-          if ! curl -L --retry 3 --retry-delay 5 https://github.com/${{ github.repository }}/releases/download/v${VERSION}/uuid-${VERSION}-x86_64-windows.zip -o dist/uuid-x86_64-windows.zip; then
-            echo "Failed to download x86_64 Windows zip file. Exiting."
+          # Extract SHA256 checksums from the .sha256 files
+          echo "Extracting SHA256 checksums from existing files..."
+          if [ -n "$X86_64_SHA256_FILE" ]; then
+            # Different OS might format the SHA256 file differently
+            # Windows (certutil): SHA256 hash of file.zip:
+            #                     hash_value
+            # Unix (shasum): hash_value file.tar.gz
+            # We need to extract just the hash value
+            SHA256_64=$(cat "$X86_64_SHA256_FILE" | grep -o -E '[0-9a-f]{64}' | head -1)
+            if [ -z "$SHA256_64" ]; then
+              echo "Failed to extract SHA256 checksum from x86_64 Windows SHA256 file. Exiting."
+              exit 1
+            fi
+          else
+            echo "SHA256 file for x86_64 Windows zip not found. Exiting."
             exit 1
           fi
 
-          if ! curl -L --retry 3 --retry-delay 5 https://github.com/${{ github.repository }}/releases/download/v${VERSION}/uuid-${VERSION}-i686-windows.zip -o dist/uuid-i686-windows.zip; then
-            echo "Failed to download i686 Windows zip file. Exiting."
-            exit 1
-          fi
-
-          # Calculate SHA256
-          echo "Calculating SHA256 checksums..."
-          SHA256_64=$(sha256sum dist/uuid-x86_64-windows.zip | awk '{print $1}')
-          if [ -z "$SHA256_64" ]; then
-            echo "Failed to calculate SHA256 checksum for x86_64 Windows zip file. Exiting."
-            exit 1
-          fi
-
-          SHA256_32=$(sha256sum dist/uuid-i686-windows.zip | awk '{print $1}')
-          if [ -z "$SHA256_32" ]; then
-            echo "Failed to calculate SHA256 checksum for i686 Windows zip file. Exiting."
-            exit 1
+          # Note: i686 Windows build is commented out in the matrix, so we'll use a placeholder
+          # If i686 build is enabled, this should be updated to use the actual file
+          SHA256_32="$SHA256_64"  # Using x86_64 hash as a fallback
+          if [ -n "$I686_SHA256_FILE" ]; then
+            SHA256_32=$(cat "$I686_SHA256_FILE" | grep -o -E '[0-9a-f]{64}' | head -1)
+            if [ -z "$SHA256_32" ]; then
+              echo "Failed to extract SHA256 checksum from i686 Windows SHA256 file. Using x86_64 hash as fallback."
+              SHA256_32="$SHA256_64"
+            fi
           fi
 
           # Create Scoop manifest
           echo "Creating Scoop manifest..."
-          cat > dist/uuid.json << EOF
+          cat > release-assets/uuid.json << EOF
           {
               "version": "${VERSION}",
               "description": "CLI tool for generating UUIDs of different versions",
@@ -304,16 +256,13 @@ jobs:
           }
           EOF
 
-
-      - name: Upload Package Manager Assets
+      - name: Create Release
         uses: ncipollo/release-action@v1.18.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ github.ref }}
           name: ${{ github.ref_name }}
-          artifacts: |
-            dist/uuid.rb
-            dist/uuid.json
+          artifacts: "release-assets/*"
           allowUpdates: true
           omitBodyDuringUpdate: true
           skipIfReleaseExists: false
