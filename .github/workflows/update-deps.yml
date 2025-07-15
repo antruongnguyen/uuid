@@ -8,6 +8,10 @@ on:
     branches:
       - main
 
+# Explicitly define permissions needed for pushing changes
+permissions:
+  contents: write
+
 jobs:
   update-docs:
     name: Update Dependencies in Documentation
@@ -23,7 +27,7 @@ jobs:
           UUID_VERSION=$(grep -oP 'uuid_lib = \{ package = "uuid", version = "\K[^"]+' Cargo.toml)
           CLAP_VERSION=$(grep -oP 'clap = \{ version = "\K[^"]+' Cargo.toml)
           CLIPBOARD_VERSION=$(grep -oP 'clipboard = "\K[^"]+' Cargo.toml)
-          
+
           echo "uuid_version=$UUID_VERSION" >> $GITHUB_OUTPUT
           echo "clap_version=$CLAP_VERSION" >> $GITHUB_OUTPUT
           echo "clipboard_version=$CLIPBOARD_VERSION" >> $GITHUB_OUTPUT
@@ -33,13 +37,13 @@ jobs:
           UUID_VERSION="${{ steps.extract_versions.outputs.uuid_version }}"
           CLAP_VERSION="${{ steps.extract_versions.outputs.clap_version }}"
           CLIPBOARD_VERSION="${{ steps.extract_versions.outputs.clipboard_version }}"
-          
+
           # Update uuid version
           sed -i "s/\*\*uuid\*\* (v[0-9.]\+)/\*\*uuid\*\* (v$UUID_VERSION)/g" requirements.md
-          
+
           # Update clap version
           sed -i "s/\*\*clap\*\* (v[0-9.]\+)/\*\*clap\*\* (v$CLAP_VERSION)/g" requirements.md
-          
+
           # Update clipboard version
           sed -i "s/\*\*clipboard\*\* (v[0-9.]\+)/\*\*clipboard\*\* (v$CLIPBOARD_VERSION)/g" requirements.md
 
@@ -61,4 +65,4 @@ jobs:
           git config --local user.name "GitHub Action"
           git add requirements.md
           git commit -m "Update dependency versions in requirements.md"
-          git push
+          git push origin main
