@@ -84,12 +84,12 @@ fn main() {
       uuid.to_string()
     };
 
-    println!("{}", uuid_str);
+    println!("{uuid_str}");
 
     if args.count == 1 {
       all_uuids = uuid_str;
     } else {
-      writeln!(all_uuids, "{}", uuid_str).unwrap();
+      writeln!(all_uuids, "{uuid_str}").unwrap();
     }
   }
 
@@ -103,11 +103,11 @@ fn main() {
       Ok(mut ctx) => {
         let ctx: &mut ClipboardContext = &mut ctx;
         if let Err(e) = ctx.set_contents(all_uuids) {
-          eprintln!("Failed to copy to clipboard: {}", e);
+          eprintln!("Failed to copy to clipboard: {e}");
         }
       }
       Err(e) => {
-        eprintln!("Failed to access clipboard: {}", e);
+        eprintln!("Failed to access clipboard: {e}");
       }
     }
   }

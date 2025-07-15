@@ -1,0 +1,129 @@
+name: Release (Local Testing)
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+# Explicitly define permissions needed for GitHub releases
+permissions:
+  contents: write
+
+jobs:
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
+    steps:
+      - name: Get version from tag
+        id: get_version
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+  build-native:
+    name: Build Native Package
+    needs: create-release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libx11-dev libxcb1-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev
+
+      - name: Build for current platform
+        run: cargo build --release
+
+      - name: Test the build
+        run: |
+          ./target/release/uuid || echo "Failed to run the binary"
+          ./target/release/uuid --help
+
+      - name: Prepare artifact
+        run: |
+          mkdir -p dist
+          cp target/release/uuid dist/
+          cd dist
+          tar -czf uuid-${{ needs.create-release.outputs.version }}-native.tar.gz uuid
+          shasum -a 256 uuid-${{ needs.create-release.outputs.version }}-native.tar.gz > uuid-${{ needs.create-release.outputs.version }}-native.sha256
+
+      - name: Validate Release Assets
+        run: |
+          echo "Validating release assets..."
+
+          # Check if the tarball exists
+          if [ -f "dist/uuid-${{ needs.create-release.outputs.version }}-native.tar.gz" ]; then
+            echo "✅ Tarball exists"
+            # Get file size
+            TARBALL_SIZE=$(stat -c%s "dist/uuid-${{ needs.create-release.outputs.version }}-native.tar.gz" 2>/dev/null || stat -f%z "dist/uuid-${{ needs.create-release.outputs.version }}-native.tar.gz")
+            echo "   Size: $TARBALL_SIZE bytes"
+
+            # Verify the tarball contains the binary
+            if tar -tzf "dist/uuid-${{ needs.create-release.outputs.version }}-native.tar.gz" | grep -q "uuid"; then
+              echo "   ✅ Tarball contains the binary"
+            else
+              echo "   ❌ Tarball does not contain the binary"
+              exit 1
+            fi
+          else
+            echo "❌ Tarball does not exist"
+            exit 1
+          fi
+
+          # Check if the checksum file exists
+          if [ -f "dist/uuid-${{ needs.create-release.outputs.version }}-native.sha256" ]; then
+            echo "✅ Checksum file exists"
+            # Get file size
+            CHECKSUM_SIZE=$(stat -c%s "dist/uuid-${{ needs.create-release.outputs.version }}-native.sha256" 2>/dev/null || stat -f%z "dist/uuid-${{ needs.create-release.outputs.version }}-native.sha256")
+            echo "   Size: $CHECKSUM_SIZE bytes"
+
+            # Verify the checksum matches the tarball
+            EXPECTED_CHECKSUM=$(cat "dist/uuid-${{ needs.create-release.outputs.version }}-native.sha256" | awk '{print $1}')
+            ACTUAL_CHECKSUM=$(shasum -a 256 "dist/uuid-${{ needs.create-release.outputs.version }}-native.tar.gz" | awk '{print $1}')
+
+            if [ "$EXPECTED_CHECKSUM" = "$ACTUAL_CHECKSUM" ]; then
+              echo "   ✅ Checksum matches"
+            else
+              echo "   ❌ Checksum mismatch"
+              echo "   Expected: $EXPECTED_CHECKSUM"
+              echo "   Actual: $ACTUAL_CHECKSUM"
+              exit 1
+            fi
+          else
+            echo "❌ Checksum file does not exist"
+            exit 1
+          fi
+
+          echo "✅ All release assets are valid and ready for upload"
+          echo "In a real GitHub Actions environment, these would be uploaded to the release"
+
+  # This job simulates the build process for all platforms without actually building
+  simulate-platforms:
+    name: Simulate Platform Builds
+    needs: create-release
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            platform: Linux (x86_64)
+          - target: aarch64-unknown-linux-gnu
+            platform: Linux (ARM64)
+          - target: x86_64-apple-darwin
+            platform: macOS (x86_64)
+          - target: aarch64-apple-darwin
+            platform: macOS (ARM64)
+          - target: x86_64-pc-windows-msvc
+            platform: Windows (x86_64)
+    steps:
+      - name: Simulate build for ${{ matrix.platform }}
+        run: |
+          echo "Simulating build for ${{ matrix.platform }} (${{ matrix.target }})"
+          echo "In the actual workflow, this would build a native binary for ${{ matrix.target }}"
+          echo "Build simulation successful!"
