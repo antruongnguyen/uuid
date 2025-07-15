@@ -25,7 +25,6 @@ jobs:
     needs: create-release
     runs-on: ${{ matrix.os }}
     strategy:
-      max-parallel: 1
       matrix:
         include:
           - os: ubuntu-latest
@@ -103,15 +102,58 @@ jobs:
           tar -czf ${{ matrix.asset_name }}.tar.gz ${{ matrix.artifact_name }}
           shasum -a 256 ${{ matrix.asset_name }}.tar.gz > ${{ matrix.asset_name }}.sha256
 
-      - name: Upload Release Assets
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.asset_name }}
+          path: |
+            ${{ matrix.os == 'windows-latest' && format('dist/{0}.zip', matrix.asset_name) || format('dist/{0}.tar.gz', matrix.asset_name) }}
+            dist/${{ matrix.asset_name }}.sha256
+          retention-days: 1
+
+  # Create the release with all artifacts
+  create-github-release:
+    name: Create GitHub Release
+    needs: [create-release, build-release]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download All Artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: artifacts
+
+      - name: List Artifacts
+        run: find artifacts -type f | sort
+
+      - name: Prepare Release Assets
+        run: |
+          mkdir -p release-assets
+          # Copy all artifacts to a flat directory structure while ensuring unique filenames
+          for file in $(find artifacts -type f); do
+            # Extract the artifact name (directory name) and filename
+            artifact_name=$(basename $(dirname "$file"))
+            filename=$(basename "$file")
+
+            # If the file is already named with the artifact name (like uuid-1.0.0-x86_64-linux.tar.gz),
+            # just copy it directly, otherwise prefix it with the artifact name
+            if [[ "$filename" == *"$artifact_name"* ]]; then
+              cp "$file" "release-assets/$filename"
+            else
+              # This handles files like .sha256 that might have the same name across different artifacts
+              cp "$file" "release-assets/${artifact_name}-${filename}"
+            fi
+          done
+
+          # List files in release-assets directory
+          ls -la release-assets/
+
+      - name: Create Release
         uses: ncipollo/release-action@v1.18.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ github.ref }}
           name: ${{ github.ref_name }}
-          artifacts: |
-            ${{ matrix.os == 'windows-latest' && format('dist/{0}.zip', matrix.asset_name) || format('dist/{0}.tar.gz', matrix.asset_name) }}
-            dist/${{ matrix.asset_name }}.sha256
+          artifacts: "release-assets/*"
           allowUpdates: true
           omitBodyDuringUpdate: true
           skipIfReleaseExists: false
@@ -120,7 +162,7 @@ jobs:
   # Create special assets for package managers
   package-assets:
     name: Create Package Manager Assets
-    needs: [create-release, build-release]
+    needs: [create-release, build-release, create-github-release]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
