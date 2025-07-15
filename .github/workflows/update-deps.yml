@@ -63,6 +63,7 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
+          git diff requirements.md
           git add requirements.md
           git commit -m "Update dependency versions in requirements.md"
           git push origin main
