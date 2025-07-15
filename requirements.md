@@ -37,7 +37,7 @@ The project relies on the following Rust crates:
    - Features enabled: v1, v3, v4, v5, v6, v7, v8, fast-rng, macro-diagnostics
    - Purpose: Core functionality for UUID generation
 
-2. **clap** (v4.5.40):
+2. **clap** (v4.5.41):
    - Features enabled: derive
    - Purpose: Command-line argument parsing
 
