@@ -17,7 +17,9 @@ A command-line tool for generating UUIDs of different versions with various form
   - v8: Version 8 UUIDs using user-defined data
 - Convert UUIDs to uppercase
 - Generate multiple UUIDs at once
-- Copy generated UUIDs to the clipboard
+- Copy generated UUIDs to the clipboard*
+
+*Note: Clipboard support is disabled for ARM64 Linux builds due to cross-compilation limitations with X11 libraries.
 
 ## Installation
 
@@ -192,9 +194,40 @@ The CI pipeline automatically checks that all code is properly formatted. If the
 ## Cross-platform Support
 
 This tool works on:
-- macOS (x86_64 and ARM64)
-- Linux (x86_64 and ARM64)
-- Windows (both 64-bit and 32-bit)
+- macOS (x86_64 and ARM64) - Full feature support
+- Linux (x86_64) - Full feature support  
+- Linux (ARM64) - **Clipboard support disabled**
+- Windows (both 64-bit and 32-bit) - Full feature support
+
+### ARM64 Linux Clipboard Limitation
+
+Clipboard support is disabled for ARM64 Linux builds due to cross-compilation limitations with X11 system libraries. Here's why:
+
+#### Technical Explanation
+
+The `clipboard` crate depends on native X11 libraries (`libxcb`, `libxcb-render`, `libx11`, etc.) which creates cross-compilation challenges:
+
+1. **Architecture Mismatch**: GitHub Actions runners are x86_64, but we need ARM64 libraries
+2. **Linking Errors**: Can't link ARM64 object files with x86_64 X11 libraries
+3. **Cross-compilation Complexity**: ARM64 X11 libraries aren't available in standard cross-compilation containers
+
+#### Workaround for ARM64 Linux Users
+
+If you need clipboard functionality on ARM64 Linux, you can:
+
+```bash
+# Pipe output to system clipboard tools
+uuid | xclip -selection clipboard
+
+# Or use pbcopy on some systems
+uuid | pbcopy
+```
+
+#### Why This Approach Makes Sense
+
+- **Practical Impact**: ARM64 Linux systems often run headless without X11
+- **Core Functionality**: UUID generation works perfectly without clipboard
+- **Clean Architecture**: Optional features allow targeted builds for different environments
 
 For more information about Windows 32-bit support, see [README-windows-32bit.md](README-windows-32bit.md).
 For more information about ARM64 Linux support, see [README-arm64-linux.md](README-arm64-linux.md).

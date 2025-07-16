@@ -26,7 +26,7 @@ jobs:
         run: |
           UUID_VERSION=$(grep -oP 'uuid_lib = \{ package = "uuid", version = "\K[^"]+' Cargo.toml)
           CLAP_VERSION=$(grep -oP 'clap = \{ version = "\K[^"]+' Cargo.toml)
-          CLIPBOARD_VERSION=$(grep -oP 'clipboard = "\K[^"]+' Cargo.toml)
+          CLIPBOARD_VERSION=$(grep -oP 'clipboard = \{ version = "\K[^"]+' Cargo.toml)
 
           echo "uuid_version=$UUID_VERSION" >> $GITHUB_OUTPUT
           echo "clap_version=$CLAP_VERSION" >> $GITHUB_OUTPUT

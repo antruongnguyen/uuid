@@ -42,7 +42,21 @@ The project relies on the following Rust crates:
    - Purpose: Command-line argument parsing
 
 3. **clipboard** (v0.5.0):
+   - Optional dependency (enabled by default via `clipboard-support` feature)
    - Purpose: Cross-platform clipboard access
+   - Note: Disabled for ARM64 Linux builds due to X11 library dependencies
+
+## Feature Flags
+
+The project supports the following feature flags:
+
+1. **default**: Includes `clipboard-support` feature
+2. **clipboard-support**: Enables clipboard functionality via the `clipboard` crate
+
+To build without clipboard support:
+```bash
+cargo build --no-default-features
+```
 
 ## Development Requirements
 
