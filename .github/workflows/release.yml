@@ -292,7 +292,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: antruongnguyen/homebrew-uuid
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.PAT_TOKEN }}
           path: homebrew-uuid
 
       - name: Download release artifacts
@@ -352,7 +352,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: antruongnguyen/scoop-uuid
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.PAT_TOKEN }}
           path: scoop-uuid
 
       - name: Download release artifacts

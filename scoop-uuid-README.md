@@ -143,6 +143,16 @@ For issues, feature requests, or contributions:
 - **Repository**: [antruongnguyen/uuid](https://github.com/antruongnguyen/uuid)
 - **Issues**: [GitHub Issues](https://github.com/antruongnguyen/uuid/issues)
 
+## Credits and Special Thanks
+
+This CLI tool is built on top of the excellent **uuid** Rust library:
+
+- **Library**: [uuid-rs/uuid](https://github.com/uuid-rs/uuid)
+- **Special Thanks**: To all the maintainers and contributors of the uuid-rs library for providing a robust, well-maintained UUID generation library for Rust
+- **License**: The uuid library is licensed under Apache-2.0 OR MIT
+
+We are grateful for the hard work and dedication of the uuid-rs team, which makes this CLI tool possible. Their implementation provides comprehensive UUID generation capabilities with excellent performance and standards compliance.
+
 ## About Scoop Buckets
 
 This is a personal Scoop bucket. For more information about Scoop buckets, visit the [official documentation](https://github.com/ScoopInstaller/Scoop/wiki/Buckets).
