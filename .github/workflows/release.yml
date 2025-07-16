@@ -267,7 +267,6 @@ jobs:
           path: |
             release-assets/uuid.rb
             release-assets/uuid.json
-            release-assets/*.sha256
           retention-days: 1
 
       - name: Create Release
@@ -288,6 +287,7 @@ jobs:
     needs: [create-release, create-github-release]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - name: Checkout homebrew-uuid repository
         uses: actions/checkout@v4
         with:
@@ -347,6 +347,7 @@ jobs:
     needs: [create-release, create-github-release]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - name: Checkout scoop-uuid repository
         uses: actions/checkout@v4
         with:
