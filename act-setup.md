@@ -72,5 +72,31 @@ Since you're using an Apple M3 chip, you might encounter some platform-specific 
 
 You can modify the test by:
 - Changing the tag version in the event file
-- Testing specific jobs: `act push -j build-release --eventpath release-event.json`
-- Limiting to specific platforms: add `-m target=x86_64-apple-darwin` to test only macOS x86_64 build
+- Testing specific jobs: `./run-act-release.sh --local -j build-native`
+- Testing specific platforms: `./run-act-release.sh --local -j simulate-platforms --matrix target:<platform>`
+
+### Testing Specific Platforms
+
+To test a specific platform, use the following commands:
+
+```bash
+# Test Windows 32-bit (i686) build
+./run-act-release.sh --local -j simulate-platforms --matrix target:i686-pc-windows-msvc
+
+# Test Windows 64-bit (x86_64) build
+./run-act-release.sh --local -j simulate-platforms --matrix target:x86_64-pc-windows-msvc
+
+# Test macOS x86_64 build
+./run-act-release.sh --local -j simulate-platforms --matrix target:x86_64-apple-darwin
+
+# Test macOS ARM64 build
+./run-act-release.sh --local -j simulate-platforms --matrix target:aarch64-apple-darwin
+
+# Test Linux x86_64 build
+./run-act-release.sh --local -j simulate-platforms --matrix target:x86_64-unknown-linux-gnu
+
+# Test Linux ARM64 build
+./run-act-release.sh --local -j simulate-platforms --matrix target:aarch64-unknown-linux-gnu
+```
+
+For more detailed information about testing the release workflow, see [README-act-release.md](README-act-release.md).

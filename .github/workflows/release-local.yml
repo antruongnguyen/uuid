@@ -121,6 +121,8 @@ jobs:
             platform: macOS (ARM64)
           - target: x86_64-pc-windows-msvc
             platform: Windows (x86_64)
+          - target: i686-pc-windows-msvc
+            platform: Windows (i686)
     steps:
       - name: Simulate build for ${{ matrix.platform }}
         run: |

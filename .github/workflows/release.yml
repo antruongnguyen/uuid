@@ -47,10 +47,10 @@ jobs:
             target: x86_64-pc-windows-msvc
             artifact_name: uuid.exe
             asset_name: uuid-${{ needs.create-release.outputs.version }}-x86_64-windows
-#          - os: windows-latest
-#            target: i686-pc-windows-msvc
-#            artifact_name: uuid.exe
-#            asset_name: uuid-${{ needs.create-release.outputs.version }}-i686-windows
+          - os: windows-latest
+            target: i686-pc-windows-msvc
+            artifact_name: uuid.exe
+            asset_name: uuid-${{ needs.create-release.outputs.version }}-i686-windows
 
     steps:
       - uses: actions/checkout@v4
@@ -166,7 +166,7 @@ jobs:
           echo "Creating Homebrew formula..."
           cat > release-assets/uuid.rb << EOF
           class Uuid < Formula
-            desc "CLI tool for generating UUIDs of different versions"
+            desc "A CLI tool to generate UUID v1, v3, v4, v5, v6, v7, and v8"
             homepage "https://github.com/${{ github.repository }}"
             url "https://github.com/${{ github.repository }}/archive/refs/tags/v${VERSION}.tar.gz"
             sha256 "${SHA256}"
@@ -228,7 +228,7 @@ jobs:
           cat > release-assets/uuid.json << EOF
           {
               "version": "${VERSION}",
-              "description": "CLI tool for generating UUIDs of different versions",
+              "description": "A CLI tool to generate UUID v1, v3, v4, v5, v6, v7, and v8",
               "homepage": "https://github.com/${{ github.repository }}",
               "license": "MIT",
               "architecture": {

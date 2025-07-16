@@ -194,7 +194,9 @@ The CI pipeline automatically checks that all code is properly formatted. If the
 This tool works on:
 - macOS
 - Linux
-- Windows
+- Windows (both 64-bit and 32-bit)
+
+For more information about Windows 32-bit support, see [README-windows-32bit.md](README-windows-32bit.md).
 
 ## Continuous Integration and Deployment
 
@@ -204,6 +206,23 @@ This project uses GitHub Actions for continuous integration and deployment:
 - **Release Workflow**: Automatically builds binaries for all supported platforms and creates a GitHub release when a new tag is pushed.
 - **Dependency Updates**: Uses Dependabot to automatically check for updates to dependencies and GitHub Actions workflows.
 - **Documentation Updates**: Automatically updates the dependency versions in documentation when Cargo.toml changes.
+
+### Testing Workflows Locally
+
+You can test the GitHub Actions workflows locally using the `act` tool:
+
+```bash
+# Test the entire release workflow
+./run-act-release.sh --local
+
+# Test a specific platform (e.g., Windows 32-bit)
+./run-act-release.sh --local -j simulate-platforms --matrix target:i686-pc-windows-msvc
+```
+
+For more information about testing workflows locally:
+- See [act-setup.md](act-setup.md) for setting up `act`
+- See [README-act-release.md](README-act-release.md) for testing the release workflow
+- See [README-windows-32bit.md](README-windows-32bit.md) for Windows 32-bit specific information
 
 ### Creating a Release
 

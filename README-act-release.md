@@ -37,7 +37,25 @@ The simplified workflow (`release-local.yml`) includes:
 2. A `simulate-platforms` job that simulates builds for:
    - Linux (x86_64 and ARM64)
    - macOS (x86_64 and ARM64)
-   - Windows (x86_64)
+   - Windows (x86_64 and i686/32-bit)
+
+### Testing Specific Platforms
+
+To test a specific platform, use the `-j simulate-platforms` option with the `--matrix target:<platform>` parameter:
+
+```bash
+# Test Windows 32-bit (i686) build
+./run-act-release.sh --local -j simulate-platforms --matrix target:i686-pc-windows-msvc
+
+# Test macOS x86_64 build
+./run-act-release.sh --local -j simulate-platforms --matrix target:x86_64-apple-darwin
+
+# Test macOS ARM64 build
+./run-act-release.sh --local -j simulate-platforms --matrix target:aarch64-apple-darwin
+
+# Test Linux x86_64 build
+./run-act-release.sh --local -j simulate-platforms --matrix target:x86_64-unknown-linux-gnu
+```
 
 ## Notes for Apple Silicon (M3)
 
