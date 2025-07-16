@@ -271,3 +271,121 @@ jobs:
           omitBodyDuringUpdate: true
           skipIfReleaseExists: false
           generateReleaseNotes: true
+
+  # Update Homebrew tap
+  update-homebrew-tap:
+    name: Update Homebrew Tap
+    needs: [create-release, create-github-release]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout homebrew-uuid repository
+        uses: actions/checkout@v4
+        with:
+          repository: antruongnguyen/homebrew-uuid
+          token: ${{ secrets.GITHUB_TOKEN }}
+          path: homebrew-uuid
+
+      - name: Download release artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: homebrew-artifacts
+
+      - name: Copy Homebrew formula from artifacts
+        run: |
+          # Find the uuid.rb file in the artifacts
+          UUID_RB_FILE=$(find homebrew-artifacts -name "uuid.rb" | head -1)
+          
+          if [ -n "$UUID_RB_FILE" ]; then
+            # Copy the uuid.rb file to the homebrew-uuid repository
+            cp "$UUID_RB_FILE" homebrew-uuid/uuid.rb
+            echo "Copied uuid.rb from release artifacts"
+          else
+            echo "Error: uuid.rb file not found in release artifacts"
+            exit 1
+          fi
+
+      - name: Maintain README for homebrew-uuid
+        run: |
+          # Copy README template if it doesn't exist or update it
+          if [ ! -f homebrew-uuid/README.md ]; then
+            cp homebrew-uuid-README.md homebrew-uuid/README.md
+            echo "Created README.md for homebrew-uuid repository"
+          else
+            # Update README if needed (copy template to maintain consistency)
+            cp homebrew-uuid-README.md homebrew-uuid/README.md
+            echo "Updated README.md for homebrew-uuid repository"
+          fi
+
+      - name: Commit and push Homebrew formula
+        run: |
+          cd homebrew-uuid
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add uuid.rb README.md
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Update uuid to version ${{ needs.create-release.outputs.version }}"
+            git tag -a "v${{ needs.create-release.outputs.version }}" -m "Update uuid to version ${{ needs.create-release.outputs.version }}"
+            git push origin main
+            git push origin --tags
+          fi
+
+  # Update Scoop bucket
+  update-scoop-bucket:
+    name: Update Scoop Bucket
+    needs: [create-release, create-github-release]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout scoop-uuid repository
+        uses: actions/checkout@v4
+        with:
+          repository: antruongnguyen/scoop-uuid
+          token: ${{ secrets.GITHUB_TOKEN }}
+          path: scoop-uuid
+
+      - name: Download release artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: scoop-artifacts
+
+      - name: Copy Scoop manifest from artifacts
+        run: |
+          # Find the uuid.json file in the artifacts
+          UUID_JSON_FILE=$(find scoop-artifacts -name "uuid.json" | head -1)
+          
+          if [ -n "$UUID_JSON_FILE" ]; then
+            # Copy the uuid.json file to the scoop-uuid repository
+            cp "$UUID_JSON_FILE" scoop-uuid/uuid.json
+            echo "Copied uuid.json from release artifacts"
+          else
+            echo "Error: uuid.json file not found in release artifacts"
+            exit 1
+          fi
+
+      - name: Maintain README for scoop-uuid
+        run: |
+          # Copy README template if it doesn't exist or update it
+          if [ ! -f scoop-uuid/README.md ]; then
+            cp scoop-uuid-README.md scoop-uuid/README.md
+            echo "Created README.md for scoop-uuid repository"
+          else
+            # Update README if needed (copy template to maintain consistency)
+            cp scoop-uuid-README.md scoop-uuid/README.md
+            echo "Updated README.md for scoop-uuid repository"
+          fi
+
+      - name: Commit and push Scoop manifest
+        run: |
+          cd scoop-uuid
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add uuid.json README.md
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Update uuid to version ${{ needs.create-release.outputs.version }}"
+            git tag -a "v${{ needs.create-release.outputs.version }}" -m "Update uuid to version ${{ needs.create-release.outputs.version }}"
+            git push origin main
+            git push origin --tags
+          fi
