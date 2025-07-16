@@ -1,6 +1,8 @@
 use clap::{Parser, ValueEnum};
-use clipboard::{ClipboardContext, ClipboardProvider};
 use std::fmt::Write as FmtWrite;
+
+#[cfg(feature = "clipboard-support")]
+use clipboard::{ClipboardContext, ClipboardProvider};
 use uuid_lib::{
   Uuid,
   v1::{Context, Timestamp},
@@ -99,16 +101,24 @@ fn main() {
       eprintln!("Warning: Copying multiple UUIDs to clipboard");
     }
 
-    match ClipboardProvider::new() {
-      Ok(mut ctx) => {
-        let ctx: &mut ClipboardContext = &mut ctx;
-        if let Err(e) = ctx.set_contents(all_uuids) {
-          eprintln!("Failed to copy to clipboard: {e}");
+    #[cfg(feature = "clipboard-support")]
+    {
+      match ClipboardProvider::new() {
+        Ok(mut ctx) => {
+          let ctx: &mut ClipboardContext = &mut ctx;
+          if let Err(e) = ctx.set_contents(all_uuids) {
+            eprintln!("Failed to copy to clipboard: {e}");
+          }
+        }
+        Err(e) => {
+          eprintln!("Failed to access clipboard: {e}");
         }
       }
-      Err(e) => {
-        eprintln!("Failed to access clipboard: {e}");
-      }
+    }
+
+    #[cfg(not(feature = "clipboard-support"))]
+    {
+      eprintln!("Clipboard support is not available in this build");
     }
   }
 }

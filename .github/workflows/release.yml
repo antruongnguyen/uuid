@@ -62,7 +62,7 @@ jobs:
           targets: ${{ matrix.target }}
 
       - name: Install Linux dependencies
-        if: runner.os == 'Linux'
+        if: runner.os == 'Linux' && matrix.target == 'x86_64-unknown-linux-gnu'
         run: |
           sudo apt-get update
           sudo apt-get install -y libx11-dev libxcb1-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev
@@ -74,9 +74,13 @@ jobs:
           cargo install cross
           # Note: Cross.toml in the repository root configures cross to install Python3 in the container
 
-      - name: Build target
-        run: |
-          cargo build --release --target ${{ matrix.target }}
+      - name: Build target (ARM64 Linux)
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: cross build --release --target ${{ matrix.target }} --no-default-features
+
+      - name: Build target (All other platforms)
+        if: matrix.target != 'aarch64-unknown-linux-gnu'
+        run: cargo build --release --target ${{ matrix.target }}
 
       - name: Prepare artifact [Windows]
         if: matrix.os == 'windows-latest'

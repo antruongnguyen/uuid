@@ -6,4 +6,8 @@ edition = "2024"
 [dependencies]
 uuid_lib = { package = "uuid", version = "1.17.0", features = ["v1", "v3", "v4", "v5", "v6", "v7", "v8", "fast-rng", "macro-diagnostics"] }
 clap = { version = "4.5.41", features = ["derive"] }
-clipboard = "0.5.0"
+clipboard = { version = "0.5.0", optional = true }
+
+[features]
+default = ["clipboard-support"]
+clipboard-support = ["clipboard"]
