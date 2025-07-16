@@ -192,11 +192,12 @@ The CI pipeline automatically checks that all code is properly formatted. If the
 ## Cross-platform Support
 
 This tool works on:
-- macOS
-- Linux
+- macOS (x86_64 and ARM64)
+- Linux (x86_64 and ARM64)
 - Windows (both 64-bit and 32-bit)
 
 For more information about Windows 32-bit support, see [README-windows-32bit.md](README-windows-32bit.md).
+For more information about ARM64 Linux support, see [README-arm64-linux.md](README-arm64-linux.md).
 
 ## Continuous Integration and Deployment
 
