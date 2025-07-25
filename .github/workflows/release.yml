@@ -153,33 +153,100 @@ jobs:
           VERSION=${{ needs.create-release.outputs.version }}
           mkdir -p dist
 
-          # Note: For Homebrew, we need the SHA256 of the source tarball, which is not one of our build artifacts
-          # We still need to download it and calculate its SHA256
-          echo "Downloading source tarball..."
-          curl -L --retry 3 --retry-delay 5 https://github.com/${{ github.repository }}/archive/refs/tags/v${VERSION}.tar.gz -o dist/uuid-${VERSION}.tar.gz
-
-          # Calculate SHA256 using shasum (already available on ubuntu-latest)
-          echo "Calculating SHA256 checksum for source tarball (required for Homebrew)..."
-          SHA256=$(shasum -a 256 dist/uuid-${VERSION}.tar.gz | awk '{print $1}')
-          if [ -z "$SHA256" ]; then
-            echo "Failed to calculate SHA256 checksum. Exiting."
-            exit 1
-          fi
-
           # Create Homebrew formula
           echo "Creating Homebrew formula..."
+          
+          # Find macOS binary artifacts and their SHA256 files
+          X86_64_MACOS_TARBALL=$(find release-assets -name "*x86_64-macos.tar.gz")
+          X86_64_MACOS_SHA256_FILE=$(find release-assets -name "*x86_64-macos*.sha256")
+          ARM64_MACOS_TARBALL=$(find release-assets -name "*aarch64-macos.tar.gz")
+          ARM64_MACOS_SHA256_FILE=$(find release-assets -name "*aarch64-macos*.sha256")
+          
+          # Find Linux binary artifacts and their SHA256 files
+          X86_64_LINUX_TARBALL=$(find release-assets -name "*x86_64-linux.tar.gz")
+          X86_64_LINUX_SHA256_FILE=$(find release-assets -name "*x86_64-linux*.sha256")
+          ARM64_LINUX_TARBALL=$(find release-assets -name "*aarch64-linux.tar.gz")
+          ARM64_LINUX_SHA256_FILE=$(find release-assets -name "*aarch64-linux*.sha256")
+          
+          # Extract SHA256 checksums from the .sha256 files
+          echo "Extracting SHA256 checksums for macOS binaries..."
+          if [ -n "$X86_64_MACOS_SHA256_FILE" ]; then
+            SHA256_X86_64_MACOS=$(cat "$X86_64_MACOS_SHA256_FILE" | grep -o -E '[0-9a-f]{64}' | head -1)
+            if [ -z "$SHA256_X86_64_MACOS" ]; then
+              echo "Failed to extract SHA256 checksum for x86_64 macOS binary. Exiting."
+              exit 1
+            fi
+          else
+            echo "SHA256 file for x86_64 macOS binary not found. Exiting."
+            exit 1
+          fi
+          
+          if [ -n "$ARM64_MACOS_SHA256_FILE" ]; then
+            SHA256_ARM64_MACOS=$(cat "$ARM64_MACOS_SHA256_FILE" | grep -o -E '[0-9a-f]{64}' | head -1)
+            if [ -z "$SHA256_ARM64_MACOS" ]; then
+              echo "Failed to extract SHA256 checksum for ARM64 macOS binary. Exiting."
+              exit 1
+            fi
+          else
+            echo "SHA256 file for ARM64 macOS binary not found. Exiting."
+            exit 1
+          fi
+          
+          echo "Extracting SHA256 checksums for Linux binaries..."
+          if [ -n "$X86_64_LINUX_SHA256_FILE" ]; then
+            SHA256_X86_64_LINUX=$(cat "$X86_64_LINUX_SHA256_FILE" | grep -o -E '[0-9a-f]{64}' | head -1)
+            if [ -z "$SHA256_X86_64_LINUX" ]; then
+              echo "Failed to extract SHA256 checksum for x86_64 Linux binary. Exiting."
+              exit 1
+            fi
+          else
+            echo "SHA256 file for x86_64 Linux binary not found. Exiting."
+            exit 1
+          fi
+          
+          if [ -n "$ARM64_LINUX_SHA256_FILE" ]; then
+            SHA256_ARM64_LINUX=$(cat "$ARM64_LINUX_SHA256_FILE" | grep -o -E '[0-9a-f]{64}' | head -1)
+            if [ -z "$SHA256_ARM64_LINUX" ]; then
+              echo "Failed to extract SHA256 checksum for ARM64 Linux binary. Exiting."
+              exit 1
+            fi
+          else
+            echo "SHA256 file for ARM64 Linux binary not found. Exiting."
+            exit 1
+          fi
+          
           cat > release-assets/uuid.rb << EOF
           class Uuid < Formula
             desc "A CLI tool to generate UUID v1, v3, v4, v5, v6, v7, and v8"
             homepage "https://github.com/${{ github.repository }}"
-            url "https://github.com/${{ github.repository }}/archive/refs/tags/v${VERSION}.tar.gz"
-            sha256 "${SHA256}"
             license "MIT"
-
-            depends_on "rust" => :build
-
+            
+            on_macos do
+              on_arm do
+                url "https://github.com/${{ github.repository }}/releases/download/v${VERSION}/uuid-${VERSION}-aarch64-macos.tar.gz"
+                sha256 "${SHA256_ARM64_MACOS}"
+              end
+              
+              on_intel do
+                url "https://github.com/${{ github.repository }}/releases/download/v${VERSION}/uuid-${VERSION}-x86_64-macos.tar.gz"
+                sha256 "${SHA256_X86_64_MACOS}"
+              end
+            end
+            
+            on_linux do
+              on_arm do
+                url "https://github.com/${{ github.repository }}/releases/download/v${VERSION}/uuid-${VERSION}-aarch64-linux.tar.gz"
+                sha256 "${SHA256_ARM64_LINUX}"
+              end
+              
+              on_intel do
+                url "https://github.com/${{ github.repository }}/releases/download/v${VERSION}/uuid-${VERSION}-x86_64-linux.tar.gz"
+                sha256 "${SHA256_X86_64_LINUX}"
+              end
+            end
+            
             def install
-              system "cargo", "install", "--locked", "--root", prefix, "--path", "."
+              bin.install "uuid"
             end
 
             test do
