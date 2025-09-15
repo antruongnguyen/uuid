@@ -337,7 +337,7 @@ jobs:
           retention-days: 1
 
       - name: Create Release
-        uses: ncipollo/release-action@v1.18.0
+        uses: ncipollo/release-action@v1.20.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ github.ref }}
